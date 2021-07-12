@@ -2,9 +2,17 @@ from sklearn import tree, preprocessing, model_selection
 from sklearn.metrics import balanced_accuracy_score
 from sklearn.compose import ColumnTransformer
 from sklearn.neighbors import KNeighborsRegressor
+
+# Stochastic Gradient Descent
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
+from sklearn.linear_model import SGDClassifier
+
+
 import sklearn.utils as skl
 import pandas as pd
 import numpy as np
+import random
 
 class SequentialModelAlgorithm:
     # Se inicializan los hiper-parámetros como atributos dentro de la clase del problema
@@ -13,7 +21,7 @@ class SequentialModelAlgorithm:
     # @ sample_size como proporción de ejemplos del conjunto de datos para entrenar cada árbol secuencial
     # @ max_depth como profundidad máxima para el entrenamiento de los árboles de decisión
     # @ lr como factor de aprendizaje
-    def __init__(self, nmodels=300, sample_size=0.65, max_depth=10, lr=0.1, min_samples_leaf=1, max_features=None, min_weight_fraction_leaf=0.0, method="tree", neighbors=2):
+    def __init__(self, nmodels=300, sample_size=0.65, max_depth=10, lr=0.1, min_samples_leaf=1, max_features=None, min_weight_fraction_leaf=0.0, method="tree", neighbors=2, random=False):
         self.nmodels = nmodels
         self.sample_size = sample_size
         self.max_depth = max_depth
@@ -24,6 +32,7 @@ class SequentialModelAlgorithm:
         self.min_weight_fraction_leaf = min_weight_fraction_leaf
         self.method = method
         self.neighbors = neighbors
+        self.random = random
     
     # Comienza el proceso de creación de árboles 
     # @ attributes_cols columnas de atributos
@@ -49,6 +58,9 @@ class SequentialModelAlgorithm:
             model = tree.DecisionTreeRegressor(max_depth=self.max_depth, min_samples_leaf=self.min_samples_leaf, max_features=self.max_features, min_weight_fraction_leaf=self.min_weight_fraction_leaf)
         elif self.method == 'knn':
             model = KNeighborsRegressor(n_neighbors=self.neighbors)
+        elif self.method == 'gradient':
+            model = make_pipeline(StandardScaler(), SGDClassifier())
+            
 
         #Entrenamos nuestra primera iteración
         model = model.fit(X_train, y_train)
@@ -102,11 +114,16 @@ class SequentialModelAlgorithm:
 
         Xm, i_resm = self.sample_without_replacement(X, i_res, self.sample_size)
 
-        # Creamos un nuevo modelo que entrenamos con la muestra y su residuo
-        if self.method == 'tree':
-            submodel = tree.DecisionTreeRegressor(max_depth=self.max_depth, min_samples_leaf=self.min_samples_leaf, max_features=self.max_features, min_weight_fraction_leaf=self.min_weight_fraction_leaf)
-        elif self.method == 'knn':
-            submodel = KNeighborsRegressor(n_neighbors=self.neighbors)
+        if self.random == False:
+            # Creamos un nuevo modelo que entrenamos con la muestra y su residuo
+            if self.method == 'tree':
+                submodel = tree.DecisionTreeRegressor(max_depth=self.max_depth, min_samples_leaf=self.min_samples_leaf, max_features=self.max_features, min_weight_fraction_leaf=self.min_weight_fraction_leaf)
+            elif self.method == 'knn':
+                submodel = KNeighborsRegressor(n_neighbors=self.neighbors)
+            elif self.method == 'gradient':
+                submodel = make_pipeline(StandardScaler(), SGDClassifier())
+        else:
+            submodel = random.choice([tree.DecisionTreeRegressor(max_depth=self.max_depth, min_samples_leaf=self.min_samples_leaf, max_features=self.max_features, min_weight_fraction_leaf=self.min_weight_fraction_leaf), KNeighborsRegressor(n_neighbors=self.neighbors)])
 
         submodel = submodel.fit(Xm, i_resm)
         i_prediction = prediction + submodel.predict(X)*self.lr

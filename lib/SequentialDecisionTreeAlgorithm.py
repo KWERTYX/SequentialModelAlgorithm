@@ -32,14 +32,9 @@ class SequentialDecisionTreeAlgorithm:
         attributes = self.attributes_preprocess(attributes_cols)
         objetive = self.objetive_preproccess(objetive_col)
         
-        # Almacenamos mínimos y máximos de cada columna de los atributos para la futura clasificación
-        self.Xmin = attributes.min(axis = 0)
-        self.Xmax = attributes.max(axis = 0)
-        
         # Hacemos nuestra primera predicción sobre los resultados medios de cada columna
         cols_mean = attributes.mean(axis=0)
         
-        # Realizamos la primera muestra
         (X_train, X_test, y_train, y_test) = model_selection.train_test_split(
                 attributes, objetive,
                 random_state=12345,
@@ -61,7 +56,7 @@ class SequentialDecisionTreeAlgorithm:
             subtree, self.pred = self.meta_algorithm(X_test, y_test, self.pred)
             trees.append(subtree)
             
-        return trees, balanced_accuracy_score(y_test, self.classify_prediction(self.pred)) # realmente debería ser self.classify_prediction(self.pred)
+        return trees, balanced_accuracy_score(y_test, self.classify_prediction(self.pred))
           
     # Preprocesado de atributos. Codifica datos en formato de texto en numéricos  
     # @ attributes_cols columnas de atributos
@@ -79,7 +74,8 @@ class SequentialDecisionTreeAlgorithm:
 
         # Devolvemos como respuesta un array de enteros aplicando las transformaciones acumuladas en transforms
         # # remainder = 'passthrough' nos devolverá en la transformación también las columnas no afectadas
-        res = np.array(ColumnTransformer(transforms, remainder='passthrough').fit_transform(attributes_cols), dtype=float)
+        res = np.array(ColumnTransformer(transforms, remainder='passthrough')
+                       .fit_transform(attributes_cols), dtype=float)
 
         return res
     
